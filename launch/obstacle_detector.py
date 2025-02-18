@@ -8,7 +8,7 @@ def generate_launch_description():
     config_file = os.path.join(
         get_package_share_directory('lidar_detection_tracking'),
         'config',
-        'obstacle_detector_params'
+        'obstacle_detector_params.yaml'
     )
     id = launch.LaunchDescription()  # Correct function name
 

@@ -44,140 +44,148 @@ class ObstacleDetectorNode : public rclcpp::Node
     public :
     ObstacleDetectorNode() : Node("obstacle_detector"), tf2_buffer_(this->get_clock()), tf2_listener_(tf2_buffer_)
     {   
-         // Declare topic parameters
-    this->declare_parameter<std::string>("lidar_points_topic", "/ouster/points");
-    this->declare_parameter<std::string>("cloud_ground_topic", "/cloud/ground");
-    this->declare_parameter<std::string>("cloud_clusters_topic", "/cloud/clusters");
-    this->declare_parameter<std::string>("vision_bboxes_topic", "/bboxes/vision");
-    this->declare_parameter<std::string>("autoware_objects_topic", "/detected_objects");
-    this->declare_parameter<std::string>("bbox_target_frame", "base_link");
-
-
+        // Declare topic parameters
+                this->declare_parameter<std::string>("lidar_points_topic", "/ouster/points");
+                this->declare_parameter<std::string>("cloud_ground_topic", "/cloud/ground");
+                this->declare_parameter<std::string>("cloud_clusters_topic", "/cloud/clusters");
+                this->declare_parameter<std::string>("vision_bboxes_topic", "/bboxes/vision");
+                this->declare_parameter<std::string>("autoware_objects_topic", "/detected_objects");
+                this->declare_parameter<std::string>("bbox_target_frame", "base_link");
         // Declare parameters
-    this->declare_parameter("use_pca_box", true);
-    this->declare_parameter("use_tracking", true);
-    this->declare_parameter("voxel_grid_size", 0.1f);
-    this->declare_parameter("roi_max_x", 50.0f);
-    this->declare_parameter("roi_max_y", 50.0f);
-    this->declare_parameter("roi_max_z", 50.0f);
-    this->declare_parameter("roi_min_x", -50.0f);
-    this->declare_parameter("roi_min_y", -50.0f);
-    this->declare_parameter("roi_min_z", -50.0f);
-    this->declare_parameter("ground_threshold", 0.1f);
-    this->declare_parameter("cluster_threshold", 0.5f);
-    this->declare_parameter("cluster_max_size", 10000);
-    this->declare_parameter("cluster_min_size", 100);
-    this->declare_parameter("displacement_threshold", 1.0f);
-    this->declare_parameter("iou_threshold", 0.5f);
+                this->declare_parameter("use_pca_box", true);
+                this->declare_parameter("use_tracking", true);
+                this->declare_parameter("voxel_grid_size", 0.1f);
+                this->declare_parameter("roi_max_x", 50.0f);
+                this->declare_parameter("roi_max_y", 50.0f);
+                this->declare_parameter("roi_max_z", 50.0f);
+                this->declare_parameter("roi_min_x", -50.0f);
+                this->declare_parameter("roi_min_y", -50.0f);
+                this->declare_parameter("roi_min_z", -50.0f);
+                this->declare_parameter("ground_threshold", 0.1f);
+                this->declare_parameter("cluster_threshold", 0.5f);
+                this->declare_parameter("cluster_max_size", 10000);
+                this->declare_parameter("cluster_min_size", 100);
+                this->declare_parameter("displacement_threshold", 1.0f);
+                this->declare_parameter("iou_threshold", 0.5f);
 
-    // Get parameters
-    USE_PCA_BOX = this->get_parameter("use_pca_box").as_bool();
-    USE_TRACKING = this->get_parameter("use_tracking").as_bool();
-    VOXEL_GRID_SIZE = this->get_parameter("voxel_grid_size").as_double();
-    ROI_MAX_POINT = Eigen::Vector4f(
-        this->get_parameter("roi_max_x").as_double(),
-        this->get_parameter("roi_max_y").as_double(),
-        this->get_parameter("roi_max_z").as_double(),
-        1.0f);
-    ROI_MIN_POINT = Eigen::Vector4f(
-        this->get_parameter("roi_min_x").as_double(),
-        this->get_parameter("roi_min_y").as_double(),
-        this->get_parameter("roi_min_z").as_double(),
-        1.0f);
-    GROUND_THRESH = this->get_parameter("ground_threshold").as_double();
-    CLUSTER_THRESH = this->get_parameter("cluster_threshold").as_double();
-    CLUSTER_MAX_SIZE = this->get_parameter("cluster_max_size").as_int();
-    CLUSTER_MIN_SIZE = this->get_parameter("cluster_min_size").as_int();
-    DISPLACEMENT_THRESH = this->get_parameter("displacement_threshold").as_double();
-    IOU_THRESH = this->get_parameter("iou_threshold").as_double();
-    // Get topic parameters
-        lidar_points_topic_ = this->get_parameter("lidar_points_topic").as_string();
-        cloud_ground_topic_ = this->get_parameter("cloud_ground_topic").as_string();
-        cloud_clusters_topic_ = this->get_parameter("cloud_clusters_topic").as_string();
-        vision_bboxes_topic_ = this->get_parameter("vision_bboxes_topic").as_string();
-        autoware_objects_topic_ = this->get_parameter("autoware_objects_topic").as_string();
-        bbox_target_frame_ = this->get_parameter("bbox_target_frame").as_string();
+        // Get parameters
+            USE_PCA_BOX = this->get_parameter("use_pca_box").as_bool();
+            USE_TRACKING = this->get_parameter("use_tracking").as_bool();
+            VOXEL_GRID_SIZE = this->get_parameter("voxel_grid_size").as_double();
+
+            ROI_MAX_POINT = Eigen::Vector4f(
+                this->get_parameter("roi_max_x").as_double(),
+                this->get_parameter("roi_max_y").as_double(),
+                this->get_parameter("roi_max_z").as_double(),
+                1.0f);
+
+            ROI_MIN_POINT = Eigen::Vector4f(
+                this->get_parameter("roi_min_x").as_double(),
+                this->get_parameter("roi_min_y").as_double(),
+                this->get_parameter("roi_min_z").as_double(),
+                1.0f);
+
+            GROUND_THRESH = this->get_parameter("ground_threshold").as_double();
+            CLUSTER_THRESH = this->get_parameter("cluster_threshold").as_double();
+            CLUSTER_MAX_SIZE = this->get_parameter("cluster_max_size").as_int();
+            CLUSTER_MIN_SIZE = this->get_parameter("cluster_min_size").as_int();
+            DISPLACEMENT_THRESH = this->get_parameter("displacement_threshold").as_double();
+            IOU_THRESH = this->get_parameter("iou_threshold").as_double();
+
+        // Get topic parameters
+
+            lidar_points_topic_ = this->get_parameter("lidar_points_topic").as_string();
+            cloud_ground_topic_ = this->get_parameter("cloud_ground_topic").as_string();
+            cloud_clusters_topic_ = this->get_parameter("cloud_clusters_topic").as_string();
+            vision_bboxes_topic_ = this->get_parameter("vision_bboxes_topic").as_string();
+            autoware_objects_topic_ = this->get_parameter("autoware_objects_topic").as_string();
+            bbox_target_frame_ = this->get_parameter("bbox_target_frame").as_string();
+        //Vis
+        // RCLCPP_INFO(this->get_logger(), "Lidar Points Topic: %s", lidar_points_topic_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Cloud Ground Topic: %s", cloud_ground_topic_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Cloud Clusters Topic: %s", cloud_clusters_topic_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Vision Bboxes Topic: %s", vision_bboxes_topic_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Autoware Objects Topic: %s", autoware_objects_topic_.c_str());
+        // RCLCPP_INFO(this->get_logger(), "BBox Target Frame: %s", bbox_target_frame_.c_str());
+
 
 
         //susbcribers and publishers : 
-        sub_lidar_points = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            lidar_points_topic_, rclcpp::QoS(rclcpp::SystemDefaultsQoS()).best_effort(), std::bind(&ObstacleDetectorNode::lidarPointsCallback, this, std::placeholders::_1));
+            sub_lidar_points = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+                lidar_points_topic_, rclcpp::QoS(rclcpp::SystemDefaultsQoS()).best_effort(), std::bind(&ObstacleDetectorNode::lidarPointsCallback, this, std::placeholders::_1));
 
-        pub_autoware_objects_ = this->create_publisher<autoware_perception_msgs::msg::DetectedObjects>(autoware_objects_topic_, 10);
-        pub_vision_bboxes_ = this->create_publisher<vision_msgs::msg::BoundingBox3DArray>(vision_bboxes_topic_, 10);
-        pub_cloud_ground_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_ground_topic_, 10);
-        pub_cloud_clusters_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_clusters_topic_, 10);
-        pub_bbox_markers = this->create_publisher<visualization_msgs::msg::MarkerArray>("/bbox_markers", 10);
-
-
-        // // Dynamic Parameter Server (if needed, using rclcpp::ParameterEventHandler)
-        // parameter_handler_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-        // parameter_callback_handle_ = parameter_handler_->add_parameter_callback(
-        //     "use_tracking", 
-        //     [this](const rclcpp::Parameter &p) { USE_TRACKING = p.as_bool(); });
+            pub_autoware_objects_ = this->create_publisher<autoware_perception_msgs::msg::DetectedObjects>(autoware_objects_topic_, 10);
+            pub_vision_bboxes_ = this->create_publisher<vision_msgs::msg::BoundingBox3DArray>(vision_bboxes_topic_, 10);
+            pub_cloud_ground_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_ground_topic_, 10);
+            pub_cloud_clusters_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_clusters_topic_, 10);
+            pub_bbox_markers = this->create_publisher<visualization_msgs::msg::MarkerArray>("/bbox_markers", 10);
 
         // Initialize Obstacle Detector
-        obstacle_detector_ = std::make_shared<ObstacleDetector<pcl::PointXYZ>>();
-        obstacle_id_ = 0;
+            obstacle_detector_ = std::make_shared<ObstacleDetector<pcl::PointXYZ>>();
+            obstacle_id_ = 0;
     }
     private :
 
-    // Variables
-    size_t obstacle_id_;
-    std::string bbox_target_frame_, bbox_source_frame;
-    std::vector<Box> prev_boxes_, curr_boxes_;
-    std::shared_ptr<ObstacleDetector<pcl::PointXYZ>> obstacle_detector_;
+        // Variables
+            size_t obstacle_id_;
+            std::string bbox_target_frame_, bbox_source_frame;
+            std::vector<Box> prev_boxes_, curr_boxes_;
+            std::shared_ptr<ObstacleDetector<pcl::PointXYZ>> obstacle_detector_;
 
-    // Topic names
-    std::string lidar_points_topic_;
-    std::string cloud_ground_topic_;
-    std::string cloud_clusters_topic_;
-    std::string vision_bboxes_topic_;
-    std::string autoware_objects_topic_;
+        // Topic names
+            std::string lidar_points_topic_;
+            std::string cloud_ground_topic_;
+            std::string cloud_clusters_topic_;
+            std::string vision_bboxes_topic_;
+            std::string autoware_objects_topic_;
 
-    //TF2 :
-    tf2_ros::Buffer tf2_buffer_;
-    tf2_ros::TransformListener tf2_listener_;
+        //TF2 :
+            tf2_ros::Buffer tf2_buffer_;
+            tf2_ros::TransformListener tf2_listener_;
 
-    //Subscribers :
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_lidar_points;
+        //Subscribers :
+            rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_lidar_points;
 
-    //Publishers :
-    rclcpp::Publisher<autoware_perception_msgs::msg::DetectedObjects>::SharedPtr pub_autoware_objects_;
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray >::SharedPtr pub_bbox_markers;
-    rclcpp::Publisher<vision_msgs::msg::BoundingBox3DArray>::SharedPtr pub_vision_bboxes_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_ground_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_clusters_;
+        //Publishers :
+            rclcpp::Publisher<autoware_perception_msgs::msg::DetectedObjects>::SharedPtr pub_autoware_objects_;
+            rclcpp::Publisher<visualization_msgs::msg::MarkerArray >::SharedPtr pub_bbox_markers;
+            rclcpp::Publisher<vision_msgs::msg::BoundingBox3DArray>::SharedPtr pub_vision_bboxes_;
+            rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_ground_;
+            rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_clusters_;
 
+//Extract Detected Objects and Ground Cloud from the Lidar PointCloud :
     void lidarPointsCallback(const std::shared_ptr<sensor_msgs::msg::PointCloud2> lidar_points){
 
             RCLCPP_INFO(this->get_logger(), "Received Lidar PointCloud");
             //time the process :
-            auto start_time = std::chrono::steady_clock::now();
+                auto start_time = std::chrono::steady_clock::now();
             //Extract header and frame id :
-            auto pointcloud_header = lidar_points->header;
-            bbox_source_frame = pointcloud_header.frame_id;
+                auto pointcloud_header = lidar_points->header;
+                bbox_source_frame = pointcloud_header.frame_id;
             //Convert PointCloud2 to PCL PointCloud :
-            pcl::PointCloud<pcl::PointXYZ>::Ptr raw_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::fromROSMsg(*lidar_points, *raw_cloud);
+                pcl::PointCloud<pcl::PointXYZ>::Ptr raw_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+                pcl::fromROSMsg(*lidar_points, *raw_cloud);
             //Downsampling ROI :
-            auto filtered_cloud = obstacle_detector_->filterCloud(raw_cloud, VOXEL_GRID_SIZE, ROI_MIN_POINT, ROI_MAX_POINT);
+                auto filtered_cloud = obstacle_detector_->filterCloud(raw_cloud, VOXEL_GRID_SIZE, ROI_MIN_POINT, ROI_MAX_POINT);
             //Segment Ground & obstacles :
-            auto segmented_clouds = obstacle_detector_->segmentPlane(filtered_cloud, 30, GROUND_THRESH);
+                auto segmented_clouds = obstacle_detector_->segmentPlane(filtered_cloud, 30, GROUND_THRESH);
             //Cluster obstacles :
-            auto cloud_clusters = obstacle_detector_->clustering(segmented_clouds.first, CLUSTER_THRESH, CLUSTER_MIN_SIZE, CLUSTER_MAX_SIZE);
+                auto cloud_clusters = obstacle_detector_->clustering(segmented_clouds.first, CLUSTER_THRESH, CLUSTER_MIN_SIZE, CLUSTER_MAX_SIZE);
             // Publish ground cloud & obstacle cloud
                 publishClouds(std::move(segmented_clouds), pointcloud_header);
 
             // Publish Detected Objects
                 publishDetectedObjects(std::move(cloud_clusters), pointcloud_header);
+                
              //time the process :
-             auto end_time = std::chrono::steady_clock::now();
-             double elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-             RCLCPP_INFO(this->get_logger(), "The obstacle_detector_node found %d obstacles in %.3f second",
-                 static_cast<int>(prev_boxes_.size()),
-                 elapsed_time / 1000.0);
+                auto end_time = std::chrono::steady_clock::now();
+                double elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                RCLCPP_INFO(this->get_logger(), "The obstacle_detector_node found %d obstacles in %.3f second",
+                    static_cast<int>(prev_boxes_.size()),
+                    elapsed_time / 1000.0);
   }
+
+//Publish Ground & Clustered Clouds Function
      void publishClouds(const std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> &&segmented_clouds, const std_msgs::msg::Header &header)
     {
         RCLCPP_INFO(this->get_logger(), "Publishing Ground & Clustered Clouds");
@@ -193,22 +201,8 @@ class ObstacleDetectorNode : public rclcpp::Node
         pub_cloud_ground_->publish(cloud_ground);
         pub_cloud_clusters_->publish(obstacle_cloud);
     }
-    
 
-    vision_msgs::msg::BoundingBox3D transformVisionBbox(const Box &box,  const geometry_msgs::msg::Pose &pose_transformed) { //const std_msgs::msg::Header &header,
-            vision_msgs::msg::BoundingBox3D vision_bbox;
-            //vision_bbox.header = header;
-            vision_bbox.center = pose_transformed;  // In ROS2, `center` replaces `pose`
-            
-            // Set dimensions
-            vision_bbox.size.x = box.dimension(0);
-            vision_bbox.size.y = box.dimension(1);
-            vision_bbox.size.z = box.dimension(2);
-
-            return vision_bbox;
-
-    }
-    //Vizualisation
+    //Vizualisation : Creating the MarkerArray to visualise the detected objects in Rviz
     visualization_msgs::msg::Marker transformMarker(const Box &box, const std_msgs::msg::Header &header, const geometry_msgs::msg::Pose &pose_transformed) { //const std_msgs::msg::Header &header,
         visualization_msgs::msg::Marker marker;
         // convert to Vision Marker :
@@ -221,35 +215,16 @@ class ObstacleDetectorNode : public rclcpp::Node
         marker.scale.x = box.dimension(0);
         marker.scale.y = box.dimension(1);
         marker.scale.z = box.dimension(2);
-        marker.color.a = 0.5;
-        marker.color.r = 1.0;
+        marker.color.a = 0.3;
+        marker.color.r = 0.0;
         marker.color.g = 0.0;
-        marker.color.b = 0.0;
+        marker.color.b = 0.7;
 
         return marker;
 
-    }
-    
-    
-    
-    autoware_perception_msgs::msg::DetectedObject transformAutowareObject(const Box &box, const std_msgs::msg::Header &header, const geometry_msgs::msg::Pose &pose_transformed) {
-        autoware_perception_msgs::msg::DetectedObject autoware_object;
-        (void) header ;
-        autoware_object.existence_probability = 1.0f;  // Replaces `score`
-  
-        // Assign header and pose
-        autoware_object.kinematics.pose_with_covariance.pose = pose_transformed;
-        autoware_object.kinematics.pose_with_covariance.covariance.fill(0.0); // No covariance info
-        
-        // Set dimensions
-        autoware_object.shape.dimensions.x = box.dimension(0);
-        autoware_object.shape.dimensions.y = box.dimension(1);
-        autoware_object.shape.dimensions.z = box.dimension(2);
+    }     
 
-        return autoware_object;
-    }       
-
-
+    //Creating the Bounding Boxes to visualise the detected objects Using either PCA For more precise and accurate orientation of the objects or Axis Aligned Bounding Boxes for simpler BB without orientation :
 
     void publishDetectedObjects(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &&cloud_clusters, const std_msgs::msg::Header &header) {
     RCLCPP_INFO(this->get_logger(), "Publishing Detected Objects");
@@ -267,9 +242,10 @@ class ObstacleDetectorNode : public rclcpp::Node
     }
 
 
-    //Re-assign Box ids based on tracking results :
+    //Re-assign Box ids based on tracking results : Comparision of the curr_boxes_(that we got from the pcaBB or the AABB) and prev_boxes_
      if (USE_TRACKING) {obstacle_detector_->obstacleTracking(prev_boxes_, &curr_boxes_, DISPLACEMENT_THRESH, IOU_THRESH);
     }
+
     //Lookup for frame transform between Lidar frame and target frame :
     auto bbox_header = header;
     bbox_header.frame_id = bbox_target_frame_;
@@ -278,6 +254,7 @@ class ObstacleDetectorNode : public rclcpp::Node
     try{
 
         transform_stamped = tf2_buffer_.lookupTransform(bbox_target_frame_, bbox_source_frame, tf2::TimePointZero);
+
     }
     catch(tf2::TransformException &ex){
         RCLCPP_WARN(this->get_logger(), "Transform Exception : %s", ex.what());
@@ -293,10 +270,6 @@ class ObstacleDetectorNode : public rclcpp::Node
 
     }
     // Construct Bounding Boxes from the clusters
-    autoware_perception_msgs::msg::DetectedObjects autoware_objects;
-    autoware_objects.header = header;
-    vision_msgs::msg::BoundingBox3DArray vision_bboxes;
-    vision_bboxes.header = header ;
     visualization_msgs::msg::MarkerArray bbox_markers;
     for (auto &box : curr_boxes_) {
         geometry_msgs::msg::Pose pose, pose_transformed;
@@ -311,15 +284,10 @@ class ObstacleDetectorNode : public rclcpp::Node
         
         //convert to Autoware DetectedObject :
 
-        autoware_objects.objects.emplace_back(transformAutowareObject(box, bbox_header, pose_transformed));
-        vision_bboxes.boxes.emplace_back(transformVisionBbox(box, pose_transformed));
         bbox_markers.markers.emplace_back(transformMarker(box, bbox_header, pose_transformed));
     }
-
-    //Publish messages :
-    pub_autoware_objects_->publish(autoware_objects);
-    pub_vision_bboxes_->publish(vision_bboxes);
     pub_bbox_markers->publish(bbox_markers);
+
     //update previous boxes :
     prev_boxes_.swap(curr_boxes_);
     curr_boxes_.clear();
