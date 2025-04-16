@@ -6,7 +6,6 @@
 #include <unordered_set>
 #include <fstream> // Add this header for file writing
 #include <pcl/filters/crop_hull.h>
-#include <pcl/surface/convex_hull.h>
 #include <pcl/filters/impl/crop_hull.hpp>  // Required for 
 #include <pcl/common/common.h>
 #include <pcl/common/pca.h>
@@ -42,6 +41,7 @@ public:
     // ****************** Detection ***********************
 
         typename pcl::PointCloud<PointT>::Ptr filterCloud(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const float filter_res, const Eigen::Vector4f &min_pt,const Eigen::Vector4f &max_pt);
+        bool isPointInPolygon( const PointT& point, const std::vector<Eigen::Vector2f>& polygon);
 
         std::pair<typename pcl::PointCloud<PointT>::Ptr,typename pcl::PointCloud<PointT>::Ptr> segmentPlane(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,const int max_iterations, const float distance_thresh);
 
@@ -99,74 +99,124 @@ private:
 
     // FilterCloud
     template <typename PointT>
-    typename pcl::PointCloud<PointT>::Ptr ObstacleDetector<PointT>::filterCloud(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const float filter_res, const Eigen::Vector4f &min_pt, const Eigen::Vector4f &max_pt) {
-        // Create the filtering object: downsample the dataset using a leaf size
-                pcl::VoxelGrid<PointT> vg;
-                typename pcl::PointCloud<PointT>::Ptr cloud_filtered(
-                    new pcl::PointCloud<PointT>);
-                vg.setInputCloud(cloud);
-                vg.setLeafSize(filter_res, filter_res, filter_res);
-                vg.filter(*cloud_filtered);
-
-        // Cropping the ROI
+    typename pcl::PointCloud<PointT>::Ptr ObstacleDetector<PointT>::filterCloud(
+        const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
+        const float filter_res,
+        const Eigen::Vector4f &min_pt,
+        const Eigen::Vector4f &max_pt) {
+    
+        // Downsample the cloud
+        pcl::VoxelGrid<PointT> vg;
+        typename pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
+        vg.setInputCloud(cloud);
+        vg.setLeafSize(filter_res, filter_res, filter_res);
+        vg.filter(*cloud_filtered);
+    
+        // Crop ROI
         typename pcl::PointCloud<PointT>::Ptr cloud_roi(new pcl::PointCloud<PointT>);
         pcl::CropBox<PointT> region(true);
         region.setMin(min_pt);
         region.setMax(max_pt);
         region.setInputCloud(cloud_filtered);
         region.filter(*cloud_roi);
-        std::cout << "[Before Roof Removal] Points in ROI: " << cloud_roi->points.size() << std::endl;
     
-        // Step 3: Define 2D polygon (XY)
-        pcl::PointCloud<pcl::PointXYZ>::Ptr hull_points_2d(new pcl::PointCloud<pcl::PointXYZ>);
-        std::vector<Eigen::Vector2f> polygon2 = {
-            {2.0856f, 2.0450f}, {1.4750f, 1.9804f}, {1.6369f, 0.5458f},
-            {0.6178f, 0.1318f}, {0.7044f, -0.0813f}, {0.4079f, -0.2018f},
-            {0.6488f, -0.7947f}, {0.9453f, -0.6743f}, {0.9641f, -0.7206f},
-            {1.9276f, -0.3291f}, {2.8828f, -1.4846f}, {3.4934f, -1.4200f},
-            {2.6540f, -0.0448f}, {2.3077f, 0.8076f}, {2.0856f, 2.0450f}
-        };
+        // Define robot footprint polygons (x, y)
+        std::vector<std::vector<Eigen::Vector2f>> polygons;
     
-        for (const auto &pt : polygon2) {
-            hull_points_2d->push_back(pcl::PointXYZ(pt.x(), pt.y(), 0.0f)); // Z=0 for 2D
-        }
+        // First polygon
+        std::vector<Eigen::Vector2f> polygon1;
+            polygon1.emplace_back(0.5637112259864807f, 1.8793002367019653f);
+            polygon1.emplace_back(0.14143650233745575f, 1.4335603713989258f);
+            polygon1.emplace_back(1.1964020729064941f, 0.4480413496494293f);
+            polygon1.emplace_back(0.6905589699745178f, -0.5287507176399231f);
+            polygon1.emplace_back(0.8947973251342773f, -0.6345179080963135f);
+            polygon1.emplace_back(0.7476429343223572f, -0.9186756610870361f);
+            polygon1.emplace_back(1.3159583806991577f, -1.212984323501587f);
+            polygon1.emplace_back(1.463112711906433f, -0.928826630115509f);
+            polygon1.emplace_back(1.5075123310089111f, -0.9518194794654846f);
+            polygon1.emplace_back(1.9857640266418457f, -0.028307028114795685f);
+            polygon1.emplace_back(3.462529420852661f, -0.28630635142326355f);
+            polygon1.emplace_back(3.8848042488098145f, 0.15943355858325958f);
+            polygon1.emplace_back(2.353332757949829f, 0.6597287058830261f);
+            polygon1.emplace_back(1.536379337310791f, 1.0827975273132324f);
+            polygon1.emplace_back(0.5637112259864807f, 1.8793002367019653f);
+            polygons.push_back(polygon1);
     
-        // Step 4: CropHull to get indices of points inside polygon in XY
-        pcl::CropHull<PointT> crop_hull_filter;
-        std::vector<pcl::Vertices> hull_polygons(1);
-        for (size_t i = 0; i < hull_points_2d->size(); ++i) {
-            hull_polygons[0].vertices.push_back(i);
-        }
+        // Second polygon
+        std::vector<Eigen::Vector2f> polygon2;
+            polygon2.emplace_back(2.085608720779419f, 2.0449602603912354f);
+            polygon2.emplace_back(1.4750113487243652f, 1.980379581451416f);
+            polygon2.emplace_back(1.6368948221206665f, 0.5458086133003235f);
+            polygon2.emplace_back(0.6177935600280762f, 0.1317644566297531f);
+            polygon2.emplace_back(0.7043664455413818f, -0.0813203677535057f);
+            polygon2.emplace_back(0.4079005718231201f, -0.2017696052789688f);
+            polygon2.emplace_back(0.6487990021705627f, -0.7947012782096863f);
+            polygon2.emplace_back(0.9452648758888245f, -0.6742520332336426f);
+            polygon2.emplace_back(0.964085042476654f, -0.7205747961997986f);
+            polygon2.emplace_back(1.9275989532470703f, -0.3291148841381073f);
+            polygon2.emplace_back(2.8827614784240723f, -1.4845647811889648f);
+            polygon2.emplace_back(3.493359088897705f, -1.4199841022491455f);
+            polygon2.emplace_back(2.653998374938965f, -0.04478450492024422f);
+            polygon2.emplace_back(2.3077070713043213f, 0.8075547814369202f);
+            polygon2.emplace_back(2.085608720779419f, 2.0449602603912354f);
+            polygons.push_back(polygon2);
     
-        crop_hull_filter.setDim(2); // XY only
-        crop_hull_filter.setInputCloud(cloud_roi);
-        crop_hull_filter.setHullCloud(hull_points_2d);
-        crop_hull_filter.setHullIndices(hull_polygons);
-        crop_hull_filter.setCropOutside(false); // get inside points
-        std::vector<int> inside_polygon_indices;
-        crop_hull_filter.filter(inside_polygon_indices);
-        std::cout << "Inside polygon indices: " << inside_polygon_indices.size() << std::endl;
-    
-        // Step 5: Filter by Z range [-10, 10]
-        pcl::PointIndices::Ptr to_remove(new pcl::PointIndices);
-        for (int idx : inside_polygon_indices) {
-            float z = cloud_roi->points[idx].z;
-            if (z >= -4.0f && z <= 4.0f) {
-                to_remove->indices.push_back(idx);
+        // Collect indices of points inside the 3D footprint
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+        for (size_t i = 0; i < cloud_roi->size(); ++i) {
+            const auto& point = cloud_roi->points[i];
+
+            // Check 3D volume: inside polygon (x, y) AND between z_min and z_max
+            bool inside_3d_footprint = false;
+            for (const auto& polygon : polygons) {
+                if (isPointInPolygon(point, polygon) &&
+                    point.z >= -10.0f && point.z <= 8.0f) {
+                    inside_3d_footprint = true;
+                    break;
+                }
+            }
+
+            if (inside_3d_footprint) {
+                inliers->indices.push_back(i);
             }
         }
-    
-        // Step 6: Remove the selected points
+            
+    std::cout << "[Before Roof Removal] Points in ROI: " << cloud_roi->points.size() << std::endl;
+        // Remove points inside the footprint
         pcl::ExtractIndices<PointT> extract;
         extract.setInputCloud(cloud_roi);
-        extract.setIndices(to_remove);
-        extract.setNegative(true); // remove them
-        extract.filter(*cloud_roi);  // reuse cloud_roi instead of creating cloud_result
-    
-        std::cout << "[After Roof Removal + Z condition] Points in ROI: " << cloud_roi->points.size() << std::endl;
-    
+        extract.setIndices(inliers);
+        extract.setNegative(true);
+        extract.filter(*cloud_roi);
+    std::cout << "[After Roof Removal] Points in ROI: " << cloud_roi->points.size() << std::endl;
+
         return cloud_roi;
     }
+    
+    // Point-in-polygon check using ray-casting algorithm
+    template <typename PointT>
+    bool ObstacleDetector<PointT>::isPointInPolygon(
+        const PointT& point,
+        const std::vector<Eigen::Vector2f>& polygon) {
+        
+        int n = polygon.size();
+        if (n < 3) return false;
+    
+        bool inside = false;
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            const auto& p_i = polygon[i];
+            const auto& p_j = polygon[j];
+            if (((p_i.y() > point.y) != (p_j.y() > point.y)) &&
+                (point.x < (p_j.x() - p_i.x()) * (point.y - p_i.y()) / (p_j.y() - p_i.y()) + p_i.x())) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+    
+
+
+
 
     // Cloud Separation Inlier and outlier to detect obstacles
     template <typename PointT>

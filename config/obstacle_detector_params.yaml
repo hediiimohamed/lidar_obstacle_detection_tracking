@@ -15,14 +15,14 @@ obstacle_detector:
     voxel_grid_size: 0.06  # Voxel grid filter size to downsample point cloud (Taille du filtre voxel pour réduire le nuage de points)
 
     # Region of Interest (ROI) - Définition de la zone d'intérêt
-    roi_max_x: 10.0    # Max detection distance in X (longueur max de détection en X)
-    roi_max_y: 10.0    # Max detection width in Y (largeur max de détection en Y)
-    roi_max_z: 5.0     # Max detection height in Z (hauteur max de détection en Z)
-    roi_min_x: -20.0   # Min detection distance in X (longueur min de détection en X)
-    roi_min_y: -20.0   # Min detection width in Y (largeur min de détection en Y)
-    roi_min_z: -4.0  # Min detection height in Z (hauteur min de détection en Z, pour filtrer le sol)
+    roi_max_x: 25.0    # Max detection distance in X (longueur max de détection en X)
+    roi_max_y: 25.0    # Max detection width in Y (largeur max de détection en Y)
+    roi_max_z: 25.0     # Max detection height in Z (hauteur max de détection en Z)
+    roi_min_x: -25.0   # Min detection distance in X (longueur min de détection en X)
+    roi_min_y: -25.0   # Min detection width in Y (largeur min de détection en Y)
+    roi_min_z: -24.0  # Min detection height in Z (hauteur min de détection en Z, pour filtrer le sol)
 
-    ground_threshold: 0.3  # Max height for a point to be considered ground (Hauteur max pour être considéré comme sol)
+    ground_threshold: 0.1  # Max height for a point to be considered ground (Hauteur max pour être considéré comme sol)
 
     # Clustering Parameters - Paramètres de regroupement des obstacles
     cluster_threshold: 0.6    # Max distance between points to form a cluster (Distance max entre deux points pour former un groupe)
