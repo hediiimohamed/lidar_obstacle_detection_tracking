@@ -1,25 +1,98 @@
-# lidar_obstacle_detection_tracking
-This repo provides the main source codes for a lidar obstacle detection and tracking using ros2
-[INFO] [os_driver-2]: process started with pid [21448]
-[INFO] [bash-3]: process started with pid [21450]
-[INFO] [bash-4]: process started with pid [21452]
-[os_driver-2] 1740588678.693684250: [ouster.os_driver] [WARN]	lidar port set to zero, the client will assign a random port number!
-[os_driver-2] 1740588678.693896984: [ouster.os_driver] [WARN]	imu port set to zero, the client will assign a random port number!
-[os_driver-2] 1740588678.693932984: [ouster.os_driver] [INFO]	Will use automatic UDP destination
-[os_driver-2] 1740588678.809386591: [ouster.os_driver] [INFO]	Sensor os-122309000458.lan configured successfully
-[os_driver-2] 1740588678.809525917: [ouster.os_driver] [INFO]	Starting sensor os-122309000458.lan initialization...
-[os_driver-2] [2025-02-26 17:51:18.809] [ouster::sensor] [info] initializing sensor client: os-122309000458.lan expecting lidar port/imu port: 0/0 (0 means a random port will be chosen)
-[os_driver-2] [2025-02-26 17:51:36.845] [ouster::sensor] [info] parsing non-legacy metadata format
-[os_driver-2] 1740588696.847546124: [ouster.os_driver] [INFO]	No metadata file was specified, using: os-122309000458-metadata.json
-[os_driver-2] 1740588696.848122087: [ouster.os_driver] [INFO]	Wrote sensor metadata to os-122309000458-metadata.json
-[os_driver-2] 1740588696.848204166: [ouster.os_driver] [INFO]	ouster client version: 0.10.0+2898060-release
-[os_driver-2] product: OS-1-32-U2, sn: 122309000458, firmware rev: v2.5.2
-[os_driver-2] lidar mode: 1024x10, lidar udp profile: RNG19_RFL8_SIG16_NIR16
-[os_driver-2] 1740588696.851456742: [ouster.os_driver] [INFO]	reset service created
-[os_driver-2] 1740588696.854818118: [ouster.os_driver] [INFO]	get_metadata service created
-[os_driver-2] 1740588696.857193487: [ouster.os_driver] [INFO]	get_config service created
-[os_driver-2] 1740588696.858951646: [ouster.os_driver] [INFO]	set_config service created
-[bash-3] Transitioning successful
-[bash-4] Transitioning successful
-[INFO] [bash-3]: process has finished cleanly [pid 21450]
-[INFO] [bash-4]: process has finished cleanly 
+# LiDAR Obstacle Detection & Tracking Node
+
+## Overview
+
+This ROS2 node performs 3D LiDAR-based obstacle detection and tracking using point cloud processing algorithms. It processes incoming LiDAR data to:
+
+- Filter and segment the ground plane
+- Cluster obstacle points
+- Generate bounding boxes (axis-aligned or PCA-oriented)
+- Track obstacles across frames
+
+## Features
+
+- Region of Interest (ROI) filtering
+- Ground plane segmentation using RANSAC
+- Euclidean clustering for obstacle detection
+- Two bounding box generation methods:
+  - Axis-Aligned Bounding Box (AABB)
+  - PCA-oriented Bounding Box (more accurate orientation)
+- Obstacle tracking between frames using the Hungarian algorithm
+- Multiple visualization outputs:
+  - Detected objects (Autoware format)
+  - 3D bounding boxes
+  - Segmented ground and obstacle point clouds
+
+## Parameters
+
+### Topics
+
+| Parameter               | Description                            | Default              |
+|------------------------|----------------------------------------|----------------------|
+| `lidar_points_topic`   | Input LiDAR point cloud topic          | `/ouster/points`     |
+| `cloud_ground_topic`   | Output ground point cloud topic        | `/cloud/ground`      |
+| `cloud_clusters_topic` | Output obstacle clusters topic         | `/cloud/clusters`    |
+| `vision_bboxes_topic`  | Output 3D bounding boxes topic         | `/bboxes/vision`     |
+| `autoware_objects_topic` | Output Autoware detected objects topic | `/detected_objects` |
+| `bbox_target_frame`    | Target frame for bounding boxes        | `base_link`          |
+
+### Processing Parameters
+
+| Parameter               | Description                                      | Default    |
+|------------------------|--------------------------------------------------|------------|
+| `use_pca_box`          | Use PCA-oriented boxes (true) or AABB (false)   | `true`     |
+| `use_tracking`         | Enable obstacle tracking between frames         | `true`     |
+| `voxel_grid_size`      | Voxel grid filter leaf size (m)                 | `0.1`      |
+| `roi_max_x/y/z`        | ROI max bounds (m)                              | `50.0`     |
+| `roi_min_x/y/z`        | ROI min bounds (m)                              | `-50.0`    |
+| `ground_threshold`     | Ground plane distance threshold (m)             | `0.1`      |
+| `cluster_threshold`    | Euclidean clustering distance (m)               | `0.5`      |
+| `cluster_max_size`     | Max points per cluster                          | `10000`    |
+| `cluster_min_size`     | Min points per cluster                          | `100`      |
+| `displacement_threshold` | Tracking displacement threshold               | `1.0`      |
+| `iou_threshold`        | Tracking IOU threshold                          | `0.5`      |
+
+## Usage
+
+### Launch the Node
+
+```bash
+ros2 launch lidar_detection_tracking obstacle_detector.launch.py
+```
+
+#### Modify Parameters at Runtime
+```bash
+ros2 param set /obstacle_detector use_pca_box false
+
+```
+
+
+
+
+##### Input/Output
+
+Input :
+
+- sensor_msgs/msg/PointCloud2: Raw LiDAR point cloud data
+
+Output :
+
+- Sensor_msgs/msg/PointCloud2: Ground points
+
+- Sensor_msgs/msg/PointCloud2: Obstacle clusters
+
+- Autoware_auto_perception_msgs/msg/DetectedObjects: Autoware standard perception message format
+
+- Custom_msgs/msg/BoundingBox3DArray: 3D bounding boxes of detected obstacles 
+
+- Visualization_msgs/msg/MarkerArray: RViz visualization markers
+
+###### Dependencies
+- ROS2 (Foxy or newer)
+
+- PCL (Point Cloud Library)
+
+- Eigen
+
+- TF2
+
