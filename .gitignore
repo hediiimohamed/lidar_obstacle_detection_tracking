@@ -1,0 +1,15 @@
+# colcon build artifacts
+build/
+install/
+log/
+
+# ROS2 launch logs
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VSCode settings (optional)
+.vscode/
+
