@@ -2,6 +2,9 @@
 
 ## Overview
 
+This ROS2 package detects and tracks obstacles using LiDAR data. 
+It is a ROS2 port of the original lidar_obstacle_detector (ROS1) with improvements for [tracking/stability/etc.].
+
 This ROS2 node performs 3D LiDAR-based obstacle detection and tracking using point cloud processing algorithms. It processes incoming LiDAR data to:
 
 - Filter and segment the ground plane
