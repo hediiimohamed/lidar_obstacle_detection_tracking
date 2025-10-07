@@ -96,4 +96,17 @@ Output :
 
 - TF2
 
+###### Lidar Obstacle Detection & Tracking ROS2
 
+Ce projet est une adaptation ROS2 du dépôt original ROS1 :
+[lidar_obstacle_detector](https://github.com/SS47816/lidar_obstacle_detector) par SS47816.
+
+Modifications principales :
+- Portage de ROS1 vers ROS2
+- [Décrire ici tes fonctionnalités ajoutées]
+
+###### Licence
+
+Ce projet est sous licence MIT. La licence originale du projet de base est conservée.
+
+© SS47816 et Hedi Oueslati
